@@ -1,896 +1,1068 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Search,
-  Plus,
-  Trash2,
-  BookOpen,
-  BarChart3,
-  Download,
-  Volume2,
-  GraduationCap,
-  MessageSquare,
-  LibraryBig,
-  RefreshCw,
-  CheckCircle2,
-} from "lucide-react";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Momo's Korean Study Hub</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
 
-const STORAGE_KEYS = {
-  words: "korean-vocab-tracker-v2-words",
-  goal: "korean-vocab-tracker-v2-goal",
-  grammar: "korean-vocab-tracker-v2-grammar",
-  conversation: "korean-vocab-tracker-v2-conversation",
-};
+    :root {
+      --bg: #f6f7fb;
+      --card: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --primary: #111827;
+      --primary-text: #ffffff;
+      --soft: #f3f4f6;
+      --green-bg: #dcfce7;
+      --green-text: #166534;
+      --yellow-bg: #fef3c7;
+      --yellow-text: #92400e;
+      --red-bg: #fee2e2;
+      --red-text: #991b1b;
+      --blue-bg: #e0e7ff;
+      --blue-text: #3730a3;
+      --shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+      --radius: 18px;
+    }
 
-const starterWords = [
-  {
-    id: crypto.randomUUID(),
-    korean: "안녕하세요",
-    pronunciation: "annyeonghaseyo",
-    english: "hello",
-    chinese: "你好",
-    learned: true,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: crypto.randomUUID(),
-    korean: "감사합니다",
-    pronunciation: "gamsahamnida",
-    english: "thank you",
-    chinese: "謝謝",
-    learned: false,
-    createdAt: new Date().toISOString(),
-  },
-];
+    body {
+      margin: 0;
+      font-family: Arial, "Noto Sans TC", "Noto Sans KR", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
 
-const starterGrammar = [
-  {
-    id: crypto.randomUUID(),
-    title: "-아요 / -어요",
-    note: "Present tense ending used in everyday speech.",
-    example: "먹어요 / 가요",
-  },
-];
+    .container {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 32px 20px 60px;
+    }
 
-const starterConversation = [
-  {
-    id: crypto.randomUUID(),
-    prompt: "How do you say: Nice to meet you?",
-    answer: "만나서 반가워요",
-    pronunciation: "mannaseo bangawoyo",
-    translation: "很高興認識你",
-  },
-];
+    h1, h2, h3, p {
+      margin-top: 0;
+    }
 
-const tabs = [
-  { id: "vocabulary", label: "Vocabulary", icon: BookOpen },
-  { id: "quiz", label: "Vocabulary Quiz", icon: GraduationCap },
-  { id: "grammar", label: "Grammar", icon: LibraryBig },
-  { id: "conversation", label: "Conversation", icon: MessageSquare },
-];
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
 
-export default function KoreanStudyHub() {
-  const [activeTab, setActiveTab] = useState("vocabulary");
-  const [words, setWords] = useState([]);
-  const [goal, setGoal] = useState(50);
-  const [search, setSearch] = useState("");
-  const [grammarItems, setGrammarItems] = useState([]);
-  const [conversationItems, setConversationItems] = useState([]);
+    .page-title {
+      font-size: 34px;
+      margin-bottom: 8px;
+    }
 
-  const [wordForm, setWordForm] = useState({
-    korean: "",
-    pronunciation: "",
-    english: "",
-    chinese: "",
-  });
+    .subtext {
+      color: var(--muted);
+      line-height: 1.5;
+    }
 
-  const [grammarForm, setGrammarForm] = useState({
-    title: "",
-    note: "",
-    example: "",
-  });
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
 
-  const [conversationForm, setConversationForm] = useState({
-    prompt: "",
-    answer: "",
-    pronunciation: "",
-    translation: "",
-  });
+    .tab-btn {
+      border: 1px solid var(--border);
+      background: #fff;
+      color: #374151;
+      border-radius: 16px;
+      padding: 16px;
+      cursor: pointer;
+      text-align: left;
+      font-size: 15px;
+      font-weight: 600;
+      transition: 0.2s ease;
+    }
 
-  const [quizQuestion, setQuizQuestion] = useState(null);
-  const [quizInput, setQuizInput] = useState("");
-  const [quizResult, setQuizResult] = useState(null);
-  const [conversationQuestion, setConversationQuestion] = useState(null);
-  const [showConversationAnswer, setShowConversationAnswer] = useState(false);
+    .tab-btn.active {
+      background: var(--primary);
+      color: var(--primary-text);
+      border-color: var(--primary);
+    }
 
-  useEffect(() => {
-    const savedWords = localStorage.getItem(STORAGE_KEYS.words);
-    const savedGoal = localStorage.getItem(STORAGE_KEYS.goal);
-    const savedGrammar = localStorage.getItem(STORAGE_KEYS.grammar);
-    const savedConversation = localStorage.getItem(STORAGE_KEYS.conversation);
+    .tab-btn:hover {
+      transform: translateY(-1px);
+    }
 
-    if (savedWords) {
-      try {
-        setWords(JSON.parse(savedWords));
-      } catch {
-        setWords(starterWords);
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .grid-grammar,
+    .grid-conversation,
+    .grid-quiz {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 20px;
+    }
+
+    .section-title {
+      font-size: 20px;
+      margin-bottom: 16px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 12px;
+      font-size: 14px;
+      outline: none;
+      background: white;
+      font-family: inherit;
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: #6366f1;
+    }
+
+    button {
+      border: none;
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .primary-btn {
+      background: var(--primary);
+      color: var(--primary-text);
+    }
+
+    .secondary-btn {
+      background: white;
+      border: 1px solid #d1d5db;
+      color: var(--text);
+    }
+
+    .speak-btn {
+      background: var(--blue-bg);
+      color: var(--blue-text);
+    }
+
+    .delete-btn {
+      background: var(--red-bg);
+      color: var(--red-text);
+    }
+
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    .progress-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      margin-bottom: 8px;
+      color: var(--muted);
+    }
+
+    .progress-bar {
+      height: 12px;
+      background: #e5e7eb;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #22c55e, #16a34a);
+      width: 0%;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .stat-box {
+      background: var(--soft);
+      border-radius: 14px;
+      padding: 14px;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    .list-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .word-list,
+    .grammar-list,
+    .conversation-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .word-item {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 14px;
+      align-items: center;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    .word-content {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .field-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .field-value {
+      font-size: 15px;
+      word-break: break-word;
+    }
+
+    .korean {
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      margin-right: 8px;
+    }
+
+    .done {
+      background: var(--green-bg);
+      color: var(--green-text);
+    }
+
+    .learning {
+      background: var(--yellow-bg);
+      color: var(--yellow-text);
+    }
+
+    .empty {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--muted);
+      border: 1px dashed #d1d5db;
+      border-radius: 16px;
+    }
+
+    .item-card {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      background: white;
+    }
+
+    .item-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 12px;
+    }
+
+    .quiz-box,
+    .practice-box {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 18px;
+    }
+
+    .quiz-result {
+      border-radius: 14px;
+      padding: 14px;
+      font-size: 14px;
+      margin-top: 14px;
+    }
+
+    .quiz-correct {
+      background: #ecfdf5;
+      color: #047857;
+    }
+
+    .quiz-wrong {
+      background: #fef2f2;
+      color: #b91c1c;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .inline-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .small-note {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 900px) {
+      .tabs,
+      .grid-3,
+      .grid-grammar,
+      .grid-conversation,
+      .grid-quiz,
+      .form-grid,
+      .word-content,
+      .stats {
+        grid-template-columns: 1fr;
       }
-    } else {
-      setWords(starterWords);
-    }
 
-    if (savedGoal) {
-      setGoal(Number(savedGoal) || 50);
-    }
-
-    if (savedGrammar) {
-      try {
-        setGrammarItems(JSON.parse(savedGrammar));
-      } catch {
-        setGrammarItems(starterGrammar);
+      .list-top,
+      .top-bar,
+      .word-item {
+        flex-direction: column;
+        display: flex;
+        align-items: stretch;
       }
-    } else {
-      setGrammarItems(starterGrammar);
-    }
 
-    if (savedConversation) {
-      try {
-        setConversationItems(JSON.parse(savedConversation));
-      } catch {
-        setConversationItems(starterConversation);
+      .word-item {
+        gap: 12px;
       }
-    } else {
-      setConversationItems(starterConversation);
     }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.words, JSON.stringify(words));
-  }, [words]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.goal, String(goal));
-  }, [goal]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.grammar, JSON.stringify(grammarItems));
-  }, [grammarItems]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.conversation, JSON.stringify(conversationItems));
-  }, [conversationItems]);
-
-  const filteredWords = useMemo(() => {
-    const keyword = search.trim().toLowerCase();
-    if (!keyword) return words;
-
-    return words.filter((word) =>
-      [word.korean, word.pronunciation, word.english, word.chinese]
-        .filter(Boolean)
-        .some((field) => field.toLowerCase().includes(keyword))
-    );
-  }, [words, search]);
-
-  const learnedWords = useMemo(() => words.filter((word) => word.learned), [words]);
-  const learnedCount = learnedWords.length;
-  const progress = goal > 0 ? Math.min((learnedCount / goal) * 100, 100) : 0;
-
-  const handleSpeak = (text) => {
-    if (!text || typeof window === "undefined" || !("speechSynthesis" in window)) {
-      return;
-    }
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "ko-KR";
-    utterance.rate = 0.9;
-    utterance.pitch = 1;
-
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
-  };
-
-  const handleAddWord = () => {
-    if (!wordForm.korean.trim() || !wordForm.chinese.trim()) return;
-
-    const newWord = {
-      id: crypto.randomUUID(),
-      korean: wordForm.korean.trim(),
-      pronunciation: wordForm.pronunciation.trim(),
-      english: wordForm.english.trim(),
-      chinese: wordForm.chinese.trim(),
-      learned: false,
-      createdAt: new Date().toISOString(),
-    };
-
-    setWords((prev) => [newWord, ...prev]);
-    setWordForm({ korean: "", pronunciation: "", english: "", chinese: "" });
-  };
-
-  const handleToggleLearned = (id) => {
-    setWords((prev) =>
-      prev.map((word) =>
-        word.id === id ? { ...word, learned: !word.learned } : word
-      )
-    );
-  };
-
-  const handleDeleteWord = (id) => {
-    setWords((prev) => prev.filter((word) => word.id !== id));
-  };
-
-  const handleAddGrammar = () => {
-    if (!grammarForm.title.trim()) return;
-
-    setGrammarItems((prev) => [
-      {
-        id: crypto.randomUUID(),
-        title: grammarForm.title.trim(),
-        note: grammarForm.note.trim(),
-        example: grammarForm.example.trim(),
-      },
-      ...prev,
-    ]);
-
-    setGrammarForm({ title: "", note: "", example: "" });
-  };
-
-  const handleDeleteGrammar = (id) => {
-    setGrammarItems((prev) => prev.filter((item) => item.id !== id));
-  };
-
-  const handleAddConversation = () => {
-    if (!conversationForm.prompt.trim() || !conversationForm.answer.trim()) return;
-
-    setConversationItems((prev) => [
-      {
-        id: crypto.randomUUID(),
-        prompt: conversationForm.prompt.trim(),
-        answer: conversationForm.answer.trim(),
-        pronunciation: conversationForm.pronunciation.trim(),
-        translation: conversationForm.translation.trim(),
-      },
-      ...prev,
-    ]);
-
-    setConversationForm({
-      prompt: "",
-      answer: "",
-      pronunciation: "",
-      translation: "",
-    });
-  };
-
-  const handleDeleteConversation = (id) => {
-    setConversationItems((prev) => prev.filter((item) => item.id !== id));
-    if (conversationQuestion?.id === id) {
-      setConversationQuestion(null);
-      setShowConversationAnswer(false);
-    }
-  };
-
-  const generateQuiz = () => {
-    if (learnedWords.length === 0) return;
-    const randomWord = learnedWords[Math.floor(Math.random() * learnedWords.length)];
-    const mode = Math.random() > 0.5 ? "toKorean" : "toMeaning";
-    setQuizQuestion({ ...randomWord, mode });
-    setQuizInput("");
-    setQuizResult(null);
-  };
-
-  const checkQuizAnswer = () => {
-    if (!quizQuestion) return;
-
-    const userAnswer = quizInput.trim().toLowerCase();
-    const acceptedAnswers = quizQuestion.mode === "toKorean"
-      ? [quizQuestion.korean.toLowerCase(), quizQuestion.pronunciation.toLowerCase()].filter(Boolean)
-      : [quizQuestion.english.toLowerCase(), quizQuestion.chinese.toLowerCase()].filter(Boolean);
-
-    const isCorrect = acceptedAnswers.includes(userAnswer);
-    setQuizResult(isCorrect ? "correct" : "incorrect");
-  };
-
-  const generateConversationQuestion = () => {
-    if (conversationItems.length === 0) return;
-    const randomItem = conversationItems[Math.floor(Math.random() * conversationItems.length)];
-    setConversationQuestion(randomItem);
-    setShowConversationAnswer(false);
-  };
-
-  const exportData = () => {
-    const data = {
-      words,
-      grammarItems,
-      conversationItems,
-      goal,
-    };
-
-    const blob = new Blob([JSON.stringify(data, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "momo-korean-study-data.json";
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  return (
-    <div className="min-h-screen bg-slate-50 p-6 md:p-10">
-      <div className="mx-auto max-w-6xl space-y-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900">Momo's Korean Study Hub</h1>
-            <p className="mt-2 text-sm text-slate-600">
-              Organize vocabulary, review with quizzes, save grammar notes, and practice conversation prompts.
-            </p>
-          </div>
-          <Button onClick={exportData} className="rounded-2xl">
-            <Download className="mr-2 h-4 w-4" />
-            Export Data
-          </Button>
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="top-bar">
+      <div>
+        <h1 class="page-title">Momo's Korean Study Hub</h1>
+        <div class="subtext">
+          Organize vocabulary, practice quizzes, save grammar notes, and review conversation prompts.
         </div>
-
-        <div className="grid gap-3 md:grid-cols-4">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-3 rounded-2xl border p-4 text-left transition ${
-                  isActive
-                    ? "border-slate-900 bg-slate-900 text-white shadow-sm"
-                    : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
-                }`}
-              >
-                <Icon className="h-5 w-5" />
-                <div>
-                  <div className="text-sm font-semibold">{tab.label}</div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        {activeTab === "vocabulary" && (
-          <>
-            <div className="grid gap-6 lg:grid-cols-3">
-              <Card className="rounded-2xl shadow-sm lg:col-span-2">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-xl">
-                    <Plus className="h-5 w-5" />
-                    Add a New Word
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <Input
-                      placeholder="Korean, e.g. 학교"
-                      value={wordForm.korean}
-                      onChange={(e) => setWordForm({ ...wordForm, korean: e.target.value })}
-                      className="rounded-xl"
-                    />
-                    <Input
-                      placeholder="Pronunciation, e.g. hakgyo"
-                      value={wordForm.pronunciation}
-                      onChange={(e) => setWordForm({ ...wordForm, pronunciation: e.target.value })}
-                      className="rounded-xl"
-                    />
-                    <Input
-                      placeholder="English, e.g. school"
-                      value={wordForm.english}
-                      onChange={(e) => setWordForm({ ...wordForm, english: e.target.value })}
-                      className="rounded-xl"
-                    />
-                    <Input
-                      placeholder="Chinese, e.g. 學校"
-                      value={wordForm.chinese}
-                      onChange={(e) => setWordForm({ ...wordForm, chinese: e.target.value })}
-                      className="rounded-xl"
-                    />
-                  </div>
-                  <div className="mt-4 flex justify-end">
-                    <Button onClick={handleAddWord} className="rounded-2xl">
-                      Add to Vocabulary
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-2xl shadow-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-xl">
-                    <BarChart3 className="h-5 w-5" />
-                    Learning Progress
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <div className="mb-2 flex items-center justify-between text-sm text-slate-600">
-                      <span>Learned</span>
-                      <span>{learnedCount} / {goal}</span>
-                    </div>
-                    <Progress value={progress} className="h-3" />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-2xl bg-slate-100 p-4">
-                      <p className="text-xs text-slate-500">Total Words</p>
-                      <p className="mt-1 text-2xl font-semibold">{words.length}</p>
-                    </div>
-                    <div className="rounded-2xl bg-slate-100 p-4">
-                      <p className="text-xs text-slate-500">Learned</p>
-                      <p className="mt-1 text-2xl font-semibold">{learnedCount}</p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm text-slate-600">Learning Goal</label>
-                    <Input
-                      type="number"
-                      min="1"
-                      value={goal}
-                      onChange={(e) => setGoal(Number(e.target.value) || 1)}
-                      className="rounded-xl"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <Card className="rounded-2xl shadow-sm">
-              <CardHeader>
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <CardTitle className="flex items-center gap-2 text-xl">
-                    <BookOpen className="h-5 w-5" />
-                    Vocabulary List
-                  </CardTitle>
-                  <div className="relative w-full md:max-w-sm">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                    <Input
-                      placeholder="Search Korean / Chinese / English / Pronunciation"
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      className="rounded-xl pl-9"
-                    />
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {filteredWords.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-slate-200 p-10 text-center text-slate-500">
-                    No matching words yet. Try adding one.
-                  </div>
-                ) : (
-                  <div className="grid gap-4">
-                    {filteredWords.map((word) => (
-                      <div
-                        key={word.id}
-                        className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-4 md:grid-cols-[auto_1fr_auto] md:items-center"
-                      >
-                        <div className="flex items-center pt-1">
-                          <Checkbox
-                            checked={word.learned}
-                            onCheckedChange={() => handleToggleLearned(word.id)}
-                          />
-                        </div>
-
-                        <div className="grid gap-3 md:grid-cols-4">
-                          <div>
-                            <p className="text-xs text-slate-500">Korean</p>
-                            <p className="text-lg font-semibold text-slate-900">{word.korean}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-slate-500">Pronunciation</p>
-                            <p className="text-sm text-slate-700">{word.pronunciation || "—"}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-slate-500">English</p>
-                            <p className="text-sm text-slate-700">{word.english || "—"}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-slate-500">Chinese</p>
-                            <p className="text-sm text-slate-700">{word.chinese}</p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-end gap-2">
-                          <span
-                            className={`rounded-full px-3 py-1 text-xs font-medium ${
-                              word.learned
-                                ? "bg-emerald-100 text-emerald-700"
-                                : "bg-amber-100 text-amber-700"
-                            }`}
-                          >
-                            {word.learned ? "Learned" : "Learning"}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="rounded-xl"
-                            onClick={() => handleSpeak(word.korean)}
-                            title="Play pronunciation"
-                          >
-                            <Volume2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="rounded-xl"
-                            onClick={() => handleDeleteWord(word.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </>
-        )}
-
-        {activeTab === "quiz" && (
-          <div className="grid gap-6 lg:grid-cols-3">
-            <Card className="rounded-2xl shadow-sm lg:col-span-2">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-xl">
-                  <GraduationCap className="h-5 w-5" />
-                  Vocabulary Quiz
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-slate-600">
-                  Quiz questions are generated from words you marked as learned.
-                </p>
-                <div className="flex flex-wrap gap-3">
-                  <Button onClick={generateQuiz} className="rounded-2xl">
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Generate Question
-                  </Button>
-                </div>
-
-                {!quizQuestion ? (
-                  <div className="rounded-2xl border border-dashed border-slate-200 p-10 text-center text-slate-500">
-                    Generate a question to start your quiz.
-                  </div>
-                ) : (
-                  <div className="space-y-4 rounded-2xl border border-slate-200 p-5">
-                    <div>
-                      <p className="text-xs uppercase tracking-wide text-slate-500">Question</p>
-                      {quizQuestion.mode === "toKorean" ? (
-                        <div className="mt-2 space-y-1">
-                          <p className="text-lg font-semibold text-slate-900">
-                            Write this in Korean:
-                          </p>
-                          <p className="text-base text-slate-700">
-                            {quizQuestion.english || quizQuestion.chinese}
-                            {quizQuestion.english && quizQuestion.chinese ? ` / ${quizQuestion.chinese}` : ""}
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="mt-2 space-y-1">
-                          <p className="text-lg font-semibold text-slate-900">What does this mean?</p>
-                          <div className="flex items-center gap-2">
-                            <p className="text-2xl font-bold text-slate-900">{quizQuestion.korean}</p>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="rounded-xl"
-                              onClick={() => handleSpeak(quizQuestion.korean)}
-                            >
-                              <Volume2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <Input
-                      placeholder="Type your answer"
-                      value={quizInput}
-                      onChange={(e) => setQuizInput(e.target.value)}
-                      className="rounded-xl"
-                    />
-
-                    <div className="flex flex-wrap gap-3">
-                      <Button onClick={checkQuizAnswer} className="rounded-2xl">
-                        Check Answer
-                      </Button>
-                      <Button variant="outline" onClick={generateQuiz} className="rounded-2xl">
-                        Next Question
-                      </Button>
-                    </div>
-
-                    {quizResult && (
-                      <div
-                        className={`rounded-2xl p-4 text-sm ${
-                          quizResult === "correct"
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-rose-50 text-rose-700"
-                        }`}
-                      >
-                        {quizResult === "correct" ? (
-                          <div className="flex items-center gap-2">
-                            <CheckCircle2 className="h-4 w-4" />
-                            Correct.
-                          </div>
-                        ) : (
-                          <div className="space-y-1">
-                            <div>Not quite.</div>
-                            <div>
-                              Correct answer: <strong>{quizQuestion.korean}</strong>
-                              {quizQuestion.pronunciation ? ` (${quizQuestion.pronunciation})` : ""}
-                              {quizQuestion.english ? ` / ${quizQuestion.english}` : ""}
-                              {quizQuestion.chinese ? ` / ${quizQuestion.chinese}` : ""}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="rounded-2xl shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-xl">Quiz Notes</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm text-slate-600">
-                <p>Only words marked as learned will appear in the quiz.</p>
-                <p>You can answer Korean questions with Hangul or pronunciation.</p>
-                <p>You can answer meaning questions with English or Chinese.</p>
-                <div className="rounded-2xl bg-slate-100 p-4">
-                  <p className="text-xs text-slate-500">Available Learned Words</p>
-                  <p className="mt-1 text-2xl font-semibold text-slate-900">{learnedWords.length}</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {activeTab === "grammar" && (
-          <div className="grid gap-6 lg:grid-cols-3">
-            <Card className="rounded-2xl shadow-sm lg:col-span-1">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-xl">
-                  <Plus className="h-5 w-5" />
-                  Add Grammar
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Input
-                  placeholder="Grammar point, e.g. -고 싶어요"
-                  value={grammarForm.title}
-                  onChange={(e) => setGrammarForm({ ...grammarForm, title: e.target.value })}
-                  className="rounded-xl"
-                />
-                <Input
-                  placeholder="Short note"
-                  value={grammarForm.note}
-                  onChange={(e) => setGrammarForm({ ...grammarForm, note: e.target.value })}
-                  className="rounded-xl"
-                />
-                <Input
-                  placeholder="Example"
-                  value={grammarForm.example}
-                  onChange={(e) => setGrammarForm({ ...grammarForm, example: e.target.value })}
-                  className="rounded-xl"
-                />
-                <Button onClick={handleAddGrammar} className="w-full rounded-2xl">
-                  Save Grammar
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card className="rounded-2xl shadow-sm lg:col-span-2">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-xl">
-                  <LibraryBig className="h-5 w-5" />
-                  Grammar Notes
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {grammarItems.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-slate-200 p-10 text-center text-slate-500">
-                    No grammar notes yet.
-                  </div>
-                ) : (
-                  <div className="grid gap-4">
-                    {grammarItems.map((item) => (
-                      <div key={item.id} className="rounded-2xl border border-slate-200 p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="space-y-2">
-                            <p className="text-lg font-semibold text-slate-900">{item.title}</p>
-                            {item.note ? <p className="text-sm text-slate-600">{item.note}</p> : null}
-                            {item.example ? (
-                              <p className="text-sm text-slate-700">
-                                <span className="font-medium">Example:</span> {item.example}
-                              </p>
-                            ) : null}
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="rounded-xl"
-                            onClick={() => handleDeleteGrammar(item.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {activeTab === "conversation" && (
-          <div className="grid gap-6 lg:grid-cols-3">
-            <Card className="rounded-2xl shadow-sm lg:col-span-1">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-xl">
-                  <Plus className="h-5 w-5" />
-                  Add Conversation Prompt
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Input
-                  placeholder="Question prompt, e.g. How do you say 'Where are you going?'"
-                  value={conversationForm.prompt}
-                  onChange={(e) => setConversationForm({ ...conversationForm, prompt: e.target.value })}
-                  className="rounded-xl"
-                />
-                <Input
-                  placeholder="Korean answer"
-                  value={conversationForm.answer}
-                  onChange={(e) => setConversationForm({ ...conversationForm, answer: e.target.value })}
-                  className="rounded-xl"
-                />
-                <Input
-                  placeholder="Pronunciation"
-                  value={conversationForm.pronunciation}
-                  onChange={(e) => setConversationForm({ ...conversationForm, pronunciation: e.target.value })}
-                  className="rounded-xl"
-                />
-                <Input
-                  placeholder="Translation"
-                  value={conversationForm.translation}
-                  onChange={(e) => setConversationForm({ ...conversationForm, translation: e.target.value })}
-                  className="rounded-xl"
-                />
-                <Button onClick={handleAddConversation} className="w-full rounded-2xl">
-                  Save Prompt
-                </Button>
-              </CardContent>
-            </Card>
-
-            <div className="space-y-6 lg:col-span-2">
-              <Card className="rounded-2xl shadow-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-xl">
-                    <MessageSquare className="h-5 w-5" />
-                    Random Conversation Practice
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-slate-600">
-                    Generate a random question from your own conversation prompts.
-                  </p>
-                  <div className="flex flex-wrap gap-3">
-                    <Button onClick={generateConversationQuestion} className="rounded-2xl">
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                      Random Question
-                    </Button>
-                    {conversationQuestion ? (
-                      <Button
-                        variant="outline"
-                        className="rounded-2xl"
-                        onClick={() => setShowConversationAnswer((prev) => !prev)}
-                      >
-                        {showConversationAnswer ? "Hide Answer" : "Show Answer"}
-                      </Button>
-                    ) : null}
-                  </div>
-
-                  {!conversationQuestion ? (
-                    <div className="rounded-2xl border border-dashed border-slate-200 p-10 text-center text-slate-500">
-                      Generate a random question to practice.
-                    </div>
-                  ) : (
-                    <div className="rounded-2xl border border-slate-200 p-5">
-                      <p className="text-xs uppercase tracking-wide text-slate-500">Prompt</p>
-                      <p className="mt-2 text-lg font-semibold text-slate-900">{conversationQuestion.prompt}</p>
-
-                      {showConversationAnswer && (
-                        <div className="mt-5 space-y-2 rounded-2xl bg-slate-50 p-4">
-                          <div className="flex items-center gap-2">
-                            <p className="text-xl font-bold text-slate-900">{conversationQuestion.answer}</p>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="rounded-xl"
-                              onClick={() => handleSpeak(conversationQuestion.answer)}
-                            >
-                              <Volume2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          {conversationQuestion.pronunciation ? (
-                            <p className="text-sm text-slate-600">{conversationQuestion.pronunciation}</p>
-                          ) : null}
-                          {conversationQuestion.translation ? (
-                            <p className="text-sm text-slate-700">{conversationQuestion.translation}</p>
-                          ) : null}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-2xl shadow-sm">
-                <CardHeader>
-                  <CardTitle className="text-xl">Saved Conversation Prompts</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {conversationItems.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-slate-200 p-10 text-center text-slate-500">
-                      No conversation prompts yet.
-                    </div>
-                  ) : (
-                    <div className="grid gap-4">
-                      {conversationItems.map((item) => (
-                        <div key={item.id} className="rounded-2xl border border-slate-200 p-4">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="space-y-2">
-                              <p className="font-semibold text-slate-900">{item.prompt}</p>
-                              <div className="flex items-center gap-2">
-                                <p className="text-base text-slate-900">{item.answer}</p>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="rounded-xl"
-                                  onClick={() => handleSpeak(item.answer)}
-                                >
-                                  <Volume2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                              {item.pronunciation ? (
-                                <p className="text-sm text-slate-600">{item.pronunciation}</p>
-                              ) : null}
-                              {item.translation ? (
-                                <p className="text-sm text-slate-700">{item.translation}</p>
-                              ) : null}
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="rounded-xl"
-                              onClick={() => handleDeleteConversation(item.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        )}
       </div>
+      <button class="secondary-btn" onclick="exportData()">Export Data</button>
     </div>
-  );
-}
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="vocabulary" onclick="switchTab('vocabulary', this)">Vocabulary</button>
+      <button class="tab-btn" data-tab="quiz" onclick="switchTab('quiz', this)">Vocabulary Quiz</button>
+      <button class="tab-btn" data-tab="grammar" onclick="switchTab('grammar', this)">Grammar</button>
+      <button class="tab-btn" data-tab="conversation" onclick="switchTab('conversation', this)">Conversation</button>
+    </div>
+
+    <!-- Vocabulary -->
+    <section id="tab-vocabulary">
+      <div class="grid-3">
+        <div class="card">
+          <h2 class="section-title">Add a New Word</h2>
+          <div class="form-grid">
+            <input id="word-korean" placeholder="Korean, e.g. 학교" />
+            <input id="word-pronunciation" placeholder="Pronunciation, e.g. hakgyo" />
+            <input id="word-english" placeholder="English, e.g. school" />
+            <input id="word-chinese" placeholder="Chinese, e.g. 學校" />
+          </div>
+          <div class="actions">
+            <button class="primary-btn" onclick="addWord()">Add to Vocabulary</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">Learning Progress</h2>
+          <div class="progress-row">
+            <span>Learned</span>
+            <span id="progressText">0 / 50</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+
+          <div class="stats">
+            <div class="stat-box">
+              <div class="stat-label">Total Words</div>
+              <div class="stat-value" id="totalCount">0</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Learned</div>
+              <div class="stat-value" id="learnedCount">0</div>
+            </div>
+          </div>
+
+          <div class="field-label">Learning Goal</div>
+          <input id="goalInput" type="number" min="1" value="50" onchange="updateGoal()" />
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="list-top">
+          <h2 class="section-title" style="margin-bottom: 0;">Vocabulary List</h2>
+          <input id="searchInput" placeholder="Search Korean / Pronunciation / English / Chinese" oninput="renderWords()" />
+        </div>
+        <div id="wordList" class="word-list"></div>
+      </div>
+    </section>
+
+    <!-- Quiz -->
+    <section id="tab-quiz" class="hidden">
+      <div class="grid-quiz">
+        <div class="card">
+          <h2 class="section-title">Quiz Notes</h2>
+          <div class="small-note">
+            <p>Only words marked as <strong>Learned</strong> will appear in the quiz.</p>
+            <p>You can answer Korean questions with Hangul or pronunciation.</p>
+            <p>You can answer meaning questions with English or Chinese.</p>
+          </div>
+          <div class="stat-box" style="margin-top: 16px;">
+            <div class="stat-label">Available Learned Words</div>
+            <div class="stat-value" id="quizLearnedCount">0</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">Vocabulary Quiz</h2>
+          <p class="small-note">Questions are generated from words you already learned.</p>
+          <div class="actions" style="justify-content: flex-start;">
+            <button class="primary-btn" onclick="generateQuiz()">Generate Question</button>
+            <button class="secondary-btn" onclick="generateQuiz()">Next Question</button>
+          </div>
+
+          <div id="quizEmpty" class="empty" style="margin-top: 16px;">
+            Generate a question to start your quiz.
+          </div>
+
+          <div id="quizBox" class="quiz-box hidden" style="margin-top: 16px;">
+            <div class="field-label">Question</div>
+            <div id="quizQuestionArea"></div>
+
+            <div style="margin-top: 16px;">
+              <input id="quizAnswerInput" placeholder="Type your answer" />
+            </div>
+
+            <div class="actions" style="justify-content: flex-start;">
+              <button class="primary-btn" onclick="checkQuizAnswer()">Check Answer</button>
+            </div>
+
+            <div id="quizResultBox" class="quiz-result hidden"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Grammar -->
+    <section id="tab-grammar" class="hidden">
+      <div class="grid-grammar">
+        <div class="card">
+          <h2 class="section-title">Add Grammar</h2>
+          <input id="grammar-title" placeholder="Grammar point, e.g. -고 싶어요" style="margin-bottom: 12px;" />
+          <textarea id="grammar-note" placeholder="Short note"></textarea>
+          <input id="grammar-example" placeholder="Example" style="margin-top: 12px;" />
+          <div class="actions">
+            <button class="primary-btn" onclick="addGrammar()">Save Grammar</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">Grammar Notes</h2>
+          <div id="grammarList" class="grammar-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Conversation -->
+    <section id="tab-conversation" class="hidden">
+      <div class="grid-conversation">
+        <div class="card">
+          <h2 class="section-title">Add Conversation Prompt</h2>
+          <input id="conversation-prompt" placeholder="Question prompt, e.g. How do you say 'Where are you going?'" style="margin-bottom: 12px;" />
+          <input id="conversation-answer" placeholder="Korean answer" style="margin-bottom: 12px;" />
+          <input id="conversation-pronunciation" placeholder="Pronunciation" style="margin-bottom: 12px;" />
+          <input id="conversation-translation" placeholder="Translation" />
+          <div class="actions">
+            <button class="primary-btn" onclick="addConversation()">Save Prompt</button>
+          </div>
+        </div>
+
+        <div>
+          <div class="card" style="margin-bottom: 20px;">
+            <h2 class="section-title">Random Conversation Practice</h2>
+            <p class="small-note">Generate a random question from your own prompts.</p>
+            <div class="actions" style="justify-content: flex-start;">
+              <button class="primary-btn" onclick="generateConversationQuestion()">Random Question</button>
+              <button class="secondary-btn" onclick="toggleConversationAnswer()">Show / Hide Answer</button>
+            </div>
+
+            <div id="conversationPracticeEmpty" class="empty" style="margin-top: 16px;">
+              Generate a random question to practice.
+            </div>
+
+            <div id="conversationPracticeBox" class="practice-box hidden" style="margin-top: 16px;">
+              <div class="field-label">Prompt</div>
+              <div id="conversationPromptText" class="field-value" style="font-size: 18px; font-weight: bold;"></div>
+
+              <div id="conversationAnswerBox" class="hidden" style="margin-top: 18px; background: #f8fafc; padding: 14px; border-radius: 14px;">
+                <div class="inline-actions">
+                  <div id="conversationAnswerText" class="korean"></div>
+                  <button class="speak-btn" onclick="speakConversationAnswer()">Play</button>
+                </div>
+                <div id="conversationPronunciationText" class="small-note" style="margin-top: 8px;"></div>
+                <div id="conversationTranslationText" class="field-value" style="margin-top: 8px;"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2 class="section-title">Saved Conversation Prompts</h2>
+            <div id="conversationList" class="conversation-list"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const STORAGE = {
+      words: "momo_korean_words_v3",
+      goal: "momo_korean_goal_v3",
+      grammar: "momo_korean_grammar_v3",
+      conversation: "momo_korean_conversation_v3"
+    };
+
+    let words = JSON.parse(localStorage.getItem(STORAGE.words)) || [
+      {
+        id: Date.now(),
+        korean: "안녕하세요",
+        pronunciation: "annyeonghaseyo",
+        english: "hello",
+        chinese: "你好",
+        learned: true
+      },
+      {
+        id: Date.now() + 1,
+        korean: "감사합니다",
+        pronunciation: "gamsahamnida",
+        english: "thank you",
+        chinese: "謝謝",
+        learned: false
+      }
+    ];
+
+    let goal = Number(localStorage.getItem(STORAGE.goal)) || 50;
+
+    let grammarItems = JSON.parse(localStorage.getItem(STORAGE.grammar)) || [
+      {
+        id: Date.now() + 2,
+        title: "-아요 / -어요",
+        note: "Present tense ending used in everyday speech.",
+        example: "먹어요 / 가요"
+      }
+    ];
+
+    let conversationItems = JSON.parse(localStorage.getItem(STORAGE.conversation)) || [
+      {
+        id: Date.now() + 3,
+        prompt: "How do you say: Nice to meet you?",
+        answer: "만나서 반가워요",
+        pronunciation: "mannaseo bangawoyo",
+        translation: "很高興認識你"
+      }
+    ];
+
+    let quizQuestion = null;
+    let quizMode = null;
+    let currentConversationQuestion = null;
+    let showConversationAnswer = false;
+
+    function saveAll() {
+      localStorage.setItem(STORAGE.words, JSON.stringify(words));
+      localStorage.setItem(STORAGE.goal, String(goal));
+      localStorage.setItem(STORAGE.grammar, JSON.stringify(grammarItems));
+      localStorage.setItem(STORAGE.conversation, JSON.stringify(conversationItems));
+    }
+
+    function switchTab(tabName, buttonEl) {
+      document.querySelectorAll("section[id^='tab-']").forEach(sec => sec.classList.add("hidden"));
+      document.getElementById("tab-" + tabName).classList.remove("hidden");
+
+      document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
+      buttonEl.classList.add("active");
+
+      if (tabName === "quiz") renderQuizMeta();
+    }
+
+    function escapeHtml(str) {
+      return String(str || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function speakText(text) {
+      if (!text || !("speechSynthesis" in window)) return;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = "ko-KR";
+      utterance.rate = 0.9;
+      utterance.pitch = 1;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function addWord() {
+      const korean = document.getElementById("word-korean").value.trim();
+      const pronunciation = document.getElementById("word-pronunciation").value.trim();
+      const english = document.getElementById("word-english").value.trim();
+      const chinese = document.getElementById("word-chinese").value.trim();
+
+      if (!korean || !chinese) {
+        alert("Please fill in at least Korean and Chinese.");
+        return;
+      }
+
+      words.unshift({
+        id: Date.now(),
+        korean,
+        pronunciation,
+        english,
+        chinese,
+        learned: false
+      });
+
+      document.getElementById("word-korean").value = "";
+      document.getElementById("word-pronunciation").value = "";
+      document.getElementById("word-english").value = "";
+      document.getElementById("word-chinese").value = "";
+
+      saveAll();
+      renderWords();
+      renderQuizMeta();
+    }
+
+    function toggleLearned(id) {
+      words = words.map(word =>
+        word.id === id ? { ...word, learned: !word.learned } : word
+      );
+      saveAll();
+      renderWords();
+      renderQuizMeta();
+    }
+
+    function deleteWord(id) {
+      words = words.filter(word => word.id !== id);
+      saveAll();
+      renderWords();
+      renderQuizMeta();
+    }
+
+    function updateGoal() {
+      const value = Number(document.getElementById("goalInput").value);
+      goal = value > 0 ? value : 1;
+      saveAll();
+      renderWords();
+    }
+
+    function renderWords() {
+      const search = document.getElementById("searchInput").value.toLowerCase().trim();
+      const list = document.getElementById("wordList");
+
+      const filtered = words.filter(word =>
+        [word.korean, word.pronunciation, word.english, word.chinese]
+          .filter(Boolean)
+          .some(value => value.toLowerCase().includes(search))
+      );
+
+      const learnedCount = words.filter(word => word.learned).length;
+      const progress = Math.min((learnedCount / goal) * 100, 100);
+
+      document.getElementById("goalInput").value = goal;
+      document.getElementById("totalCount").textContent = words.length;
+      document.getElementById("learnedCount").textContent = learnedCount;
+      document.getElementById("progressText").textContent = `${learnedCount} / ${goal}`;
+      document.getElementById("progressFill").style.width = `${progress}%`;
+
+      if (filtered.length === 0) {
+        list.innerHTML = `<div class="empty">No matching words yet. Try adding one.</div>`;
+        return;
+      }
+
+      list.innerHTML = filtered.map(word => `
+        <div class="word-item">
+          <div>
+            <input type="checkbox" ${word.learned ? "checked" : ""} onchange="toggleLearned(${word.id})">
+          </div>
+
+          <div class="word-content">
+            <div>
+              <div class="field-label">Korean</div>
+              <div class="field-value korean">${escapeHtml(word.korean || "—")}</div>
+            </div>
+            <div>
+              <div class="field-label">Pronunciation</div>
+              <div class="field-value">${escapeHtml(word.pronunciation || "—")}</div>
+            </div>
+            <div>
+              <div class="field-label">English</div>
+              <div class="field-value">${escapeHtml(word.english || "—")}</div>
+            </div>
+            <div>
+              <div class="field-label">Chinese</div>
+              <div class="field-value">${escapeHtml(word.chinese || "—")}</div>
+            </div>
+          </div>
+
+          <div class="inline-actions" style="justify-content: flex-end;">
+            <span class="status ${word.learned ? "done" : "learning"}">
+              ${word.learned ? "Learned" : "Learning"}
+            </span>
+            <button class="speak-btn" onclick='speakText(${JSON.stringify(word.korean)})'>Play</button>
+            <button class="delete-btn" onclick="deleteWord(${word.id})">Delete</button>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function renderQuizMeta() {
+      const learnedCount = words.filter(word => word.learned).length;
+      document.getElementById("quizLearnedCount").textContent = learnedCount;
+    }
+
+    function generateQuiz() {
+      const learnedWords = words.filter(word => word.learned);
+      if (learnedWords.length === 0) {
+        alert("Please mark at least one word as Learned first.");
+        return;
+      }
+
+      const randomWord = learnedWords[Math.floor(Math.random() * learnedWords.length)];
+      quizMode = Math.random() > 0.5 ? "toKorean" : "toMeaning";
+      quizQuestion = randomWord;
+
+      document.getElementById("quizEmpty").classList.add("hidden");
+      document.getElementById("quizBox").classList.remove("hidden");
+      document.getElementById("quizAnswerInput").value = "";
+      document.getElementById("quizResultBox").classList.add("hidden");
+      document.getElementById("quizResultBox").innerHTML = "";
+
+      const area = document.getElementById("quizQuestionArea");
+
+      if (quizMode === "toKorean") {
+        const meaning = quizQuestion.english && quizQuestion.chinese
+          ? `${escapeHtml(quizQuestion.english)} / ${escapeHtml(quizQuestion.chinese)}`
+          : escapeHtml(quizQuestion.english || quizQuestion.chinese || "");
+        area.innerHTML = `
+          <div style="margin-top: 8px;">
+            <div style="font-size: 18px; font-weight: bold;">Write this in Korean:</div>
+            <div style="margin-top: 8px; font-size: 16px;">${meaning}</div>
+          </div>
+        `;
+      } else {
+        area.innerHTML = `
+          <div style="margin-top: 8px;">
+            <div style="font-size: 18px; font-weight: bold;">What does this mean?</div>
+            <div class="inline-actions" style="margin-top: 8px;">
+              <div class="korean">${escapeHtml(quizQuestion.korean)}</div>
+              <button class="speak-btn" onclick='speakText(${JSON.stringify(quizQuestion.korean)})'>Play</button>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function checkQuizAnswer() {
+      if (!quizQuestion || !quizMode) return;
+
+      const answer = document.getElementById("quizAnswerInput").value.trim().toLowerCase();
+      const box = document.getElementById("quizResultBox");
+      let accepted = [];
+
+      if (quizMode === "toKorean") {
+        accepted = [quizQuestion.korean, quizQuestion.pronunciation]
+          .filter(Boolean)
+          .map(v => v.toLowerCase());
+      } else {
+        accepted = [quizQuestion.english, quizQuestion.chinese]
+          .filter(Boolean)
+          .map(v => v.toLowerCase());
+      }
+
+      const correct = accepted.includes(answer);
+      box.classList.remove("hidden", "quiz-correct", "quiz-wrong");
+
+      if (correct) {
+        box.classList.add("quiz-correct");
+        box.innerHTML = `Correct.`;
+      } else {
+        box.classList.add("quiz-wrong");
+        box.innerHTML = `
+          <div>Not quite.</div>
+          <div style="margin-top: 6px;">
+            Correct answer:
+            <strong>${escapeHtml(quizQuestion.korean)}</strong>
+            ${quizQuestion.pronunciation ? ` (${escapeHtml(quizQuestion.pronunciation)})` : ""}
+            ${quizQuestion.english ? ` / ${escapeHtml(quizQuestion.english)}` : ""}
+            ${quizQuestion.chinese ? ` / ${escapeHtml(quizQuestion.chinese)}` : ""}
+          </div>
+        `;
+      }
+    }
+
+    function addGrammar() {
+      const title = document.getElementById("grammar-title").value.trim();
+      const note = document.getElementById("grammar-note").value.trim();
+      const example = document.getElementById("grammar-example").value.trim();
+
+      if (!title) {
+        alert("Please enter a grammar point.");
+        return;
+      }
+
+      grammarItems.unshift({
+        id: Date.now(),
+        title,
+        note,
+        example
+      });
+
+      document.getElementById("grammar-title").value = "";
+      document.getElementById("grammar-note").value = "";
+      document.getElementById("grammar-example").value = "";
+
+      saveAll();
+      renderGrammar();
+    }
+
+    function deleteGrammar(id) {
+      grammarItems = grammarItems.filter(item => item.id !== id);
+      saveAll();
+      renderGrammar();
+    }
+
+    function renderGrammar() {
+      const list = document.getElementById("grammarList");
+
+      if (grammarItems.length === 0) {
+        list.innerHTML = `<div class="empty">No grammar notes yet.</div>`;
+        return;
+      }
+
+      list.innerHTML = grammarItems.map(item => `
+        <div class="item-card">
+          <div class="item-head">
+            <div>
+              <div style="font-size: 18px; font-weight: bold; margin-bottom: 8px;">${escapeHtml(item.title)}</div>
+              ${item.note ? `<div class="small-note" style="margin-bottom: 8px;">${escapeHtml(item.note)}</div>` : ""}
+              ${item.example ? `<div><strong>Example:</strong> ${escapeHtml(item.example)}</div>` : ""}
+            </div>
+            <button class="delete-btn" onclick="deleteGrammar(${item.id})">Delete</button>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function addConversation() {
+      const prompt = document.getElementById("conversation-prompt").value.trim();
+      const answer = document.getElementById("conversation-answer").value.trim();
+      const pronunciation = document.getElementById("conversation-pronunciation").value.trim();
+      const translation = document.getElementById("conversation-translation").value.trim();
+
+      if (!prompt || !answer) {
+        alert("Please enter both a prompt and a Korean answer.");
+        return;
+      }
+
+      conversationItems.unshift({
+        id: Date.now(),
+        prompt,
+        answer,
+        pronunciation,
+        translation
+      });
+
+      document.getElementById("conversation-prompt").value = "";
+      document.getElementById("conversation-answer").value = "";
+      document.getElementById("conversation-pronunciation").value = "";
+      document.getElementById("conversation-translation").value = "";
+
+      saveAll();
+      renderConversation();
+    }
+
+    function deleteConversation(id) {
+      conversationItems = conversationItems.filter(item => item.id !== id);
+
+      if (currentConversationQuestion && currentConversationQuestion.id === id) {
+        currentConversationQuestion = null;
+        showConversationAnswer = false;
+      }
+
+      saveAll();
+      renderConversationPractice();
+      renderConversation();
+    }
+
+    function generateConversationQuestion() {
+      if (conversationItems.length === 0) {
+        alert("Please add at least one conversation prompt first.");
+        return;
+      }
+
+      const randomItem = conversationItems[Math.floor(Math.random() * conversationItems.length)];
+      currentConversationQuestion = randomItem;
+      showConversationAnswer = false;
+      renderConversationPractice();
+    }
+
+    function toggleConversationAnswer() {
+      if (!currentConversationQuestion) return;
+      showConversationAnswer = !showConversationAnswer;
+      renderConversationPractice();
+    }
+
+    function speakConversationAnswer() {
+      if (!currentConversationQuestion) return;
+      speakText(currentConversationQuestion.answer);
+    }
+
+    function renderConversationPractice() {
+      const empty = document.getElementById("conversationPracticeEmpty");
+      const box = document.getElementById("conversationPracticeBox");
+      const answerBox = document.getElementById("conversationAnswerBox");
+
+      if (!currentConversationQuestion) {
+        empty.classList.remove("hidden");
+        box.classList.add("hidden");
+        return;
+      }
+
+      empty.classList.add("hidden");
+      box.classList.remove("hidden");
+
+      document.getElementById("conversationPromptText").textContent = currentConversationQuestion.prompt;
+      document.getElementById("conversationAnswerText").textContent = currentConversationQuestion.answer;
+      document.getElementById("conversationPronunciationText").textContent = currentConversationQuestion.pronunciation || "";
+      document.getElementById("conversationTranslationText").textContent = currentConversationQuestion.translation || "";
+
+      if (showConversationAnswer) {
+        answerBox.classList.remove("hidden");
+      } else {
+        answerBox.classList.add("hidden");
+      }
+    }
+
+    function renderConversation() {
+      const list = document.getElementById("conversationList");
+
+      if (conversationItems.length === 0) {
+        list.innerHTML = `<div class="empty">No conversation prompts yet.</div>`;
+        return;
+      }
+
+      list.innerHTML = conversationItems.map(item => `
+        <div class="item-card">
+          <div class="item-head">
+            <div>
+              <div style="font-weight: bold; margin-bottom: 8px;">${escapeHtml(item.prompt)}</div>
+              <div class="inline-actions">
+                <div>${escapeHtml(item.answer)}</div>
+                <button class="speak-btn" onclick='speakText(${JSON.stringify(item.answer)})'>Play</button>
+              </div>
+              ${item.pronunciation ? `<div class="small-note" style="margin-top: 8px;">${escapeHtml(item.pronunciation)}</div>` : ""}
+              ${item.translation ? `<div style="margin-top: 8px;">${escapeHtml(item.translation)}</div>` : ""}
+            </div>
+            <button class="delete-btn" onclick="deleteConversation(${item.id})">Delete</button>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function exportData() {
+      const data = {
+        words,
+        goal,
+        grammarItems,
+        conversationItems
+      };
+
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: "application/json"
+      });
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "momo-korean-study-data.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function init() {
+      document.getElementById("goalInput").value = goal;
+      renderWords();
+      renderQuizMeta();
+      renderGrammar();
+      renderConversation();
+      renderConversationPractice();
+    }
+
+    init();
+  </script>
+</body>
+</html>
